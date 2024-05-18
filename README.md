@@ -1,2 +1,2 @@
 # clould-vault
-A cloud storage project like Onde Drive, but with crytography
+A cloud storage project like One Drive, but with crytography
