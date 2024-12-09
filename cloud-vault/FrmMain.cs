@@ -1,4 +1,3 @@
-using System.Resources;
 using System.Security.Cryptography;
 using System.Text.Json;
 using cloudVault.Classes;
@@ -17,8 +16,8 @@ namespace cloudVault
 
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IProgress<string> _notification;
-        private readonly SemaphoreSlim _semaphore;
         private readonly CryptoManager _cryptoManager;
+        private readonly SemaphoreSlim _semaphore;
 
         private enum CypherMode
         {
@@ -29,15 +28,13 @@ namespace cloudVault
         public FrmMain()
         {
             InitializeComponent();
-
-            ResourceManager resourceManager = new(typeof(FrmMain));
-
-            _ignoredPaths = JsonSerializer.Deserialize<string[]>(resourceManager.GetString("IGNORED_PATHS"));
-            _allowedChars = JsonSerializer.Deserialize<char[]>(resourceManager.GetString("CHARS"));
-            _allowedExtensions = JsonSerializer.Deserialize<string[]>(resourceManager.GetString("ALLOWED_EXTENSIONS"));
-            _defaultExtension = JsonSerializer.Deserialize<string>(resourceManager.GetString("DEFAULT_EXTENSION"));
-            _iteractionsLimit = JsonSerializer.Deserialize<int>(resourceManager.GetString("ITERACTIONS_LIMIT"));
-            _saltSyze = JsonSerializer.Deserialize<int>(resourceManager.GetString("SALT_SIZE"));
+            
+            _ignoredPaths = JsonSerializer.Deserialize<string[]>(Settings.Default.IGNORED_PATHS);
+            _allowedChars = JsonSerializer.Deserialize<char[]>(Settings.Default.CHARS);
+            _allowedExtensions = JsonSerializer.Deserialize<string[]>(Settings.Default.ALLOWED_EXTENSIONS);
+            _defaultExtension = JsonSerializer.Deserialize<string>(Settings.Default.DEFAULT_EXTENSION);
+            _iteractionsLimit = JsonSerializer.Deserialize<int>(Settings.Default.ITERACTIONS_LIMIT);
+            _saltSyze = JsonSerializer.Deserialize<int>(Settings.Default.SALT_SIZE);
 
             _semaphore = new SemaphoreSlim(1, 10);
             _notification = new Progress<string>(WriteLine);
@@ -189,16 +186,26 @@ namespace cloudVault
                 switch (btnDecode.Text)
                 {
                     case "DECODE":
+
+                        ChangeButton();
+
                         await ManageFolders(CypherMode.Decode);
 
                         btnDecode.Text = "ENCODE";
 
+                        ChangeButton();
+
                         break;
 
                     case "ENCODE":
+
+                        ChangeButton();
+
                         await ManageFolders(CypherMode.Encode);
 
                         btnDecode.Text = "DECODE";
+
+                        ChangeButton();
 
                         break;
 
@@ -209,6 +216,11 @@ namespace cloudVault
             {
                 _notification.Report(exeption.Message);
             }
+        }
+
+        private void ChangeButton()
+        {
+            btnDecode.Enabled = !btnDecode.Enabled;
         }
 
         private async Task ManageFolders(CypherMode mode)
