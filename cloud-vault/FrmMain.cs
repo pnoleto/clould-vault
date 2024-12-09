@@ -110,7 +110,7 @@ namespace cloudVault
 
                                 await _cryptoManager.EncodeFileAsync(filePath, newFilePath);
 
-                                _notification.Report($@"Encrypted {filePath}");
+                                _notification.Report($@"Encrypted {newFilePath}");
 
                                 RemoveFile(filePath);
 
@@ -126,7 +126,7 @@ namespace cloudVault
 
                                 await _cryptoManager.DecodeFileAsync(filePath, newFilePath);
 
-                                _notification.Report($"Decrypted {filePath}");
+                                _notification.Report($"Decrypted {newFilePath}");
 
                                 RemoveFile(filePath);
 
