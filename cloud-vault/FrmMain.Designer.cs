@@ -95,13 +95,11 @@
             Controls.Add(txtKey);
             Controls.Add(btnDecode);
             Controls.Add(txtLogs);
-            FormBorderStyle = FormBorderStyle.None;
-            MinimizeBox = false;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
             MinimumSize = new Size(800, 450);
             Name = "FrmMain";
             SizeGripStyle = SizeGripStyle.Hide;
             StartPosition = FormStartPosition.CenterScreen;
-            TopMost = true;
             ResumeLayout(false);
             PerformLayout();
         }

@@ -14,4 +14,10 @@
     <PackageReference Include="DeviceId" Version="6.6.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Update="FrmMain.resx">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

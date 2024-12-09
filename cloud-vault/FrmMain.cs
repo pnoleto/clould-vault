@@ -7,7 +7,6 @@ namespace cloudVault
 {
     public partial class FrmMain : Form
     {
-        private readonly int _keySyze;
         private readonly int _saltSyze;
         private readonly int _iteractionsLimit;
         private readonly char[] _allowedChars;
@@ -39,20 +38,11 @@ namespace cloudVault
             _defaultExtension = JsonSerializer.Deserialize<string>(resourceManager.GetString("DEFAULT_EXTENSION"));
             _iteractionsLimit = JsonSerializer.Deserialize<int>(resourceManager.GetString("ITERACTIONS_LIMIT"));
             _saltSyze = JsonSerializer.Deserialize<int>(resourceManager.GetString("SALT_SIZE"));
-            _keySyze = JsonSerializer.Deserialize<int>(resourceManager.GetString("KEY_SIZE"));
 
             _semaphore = new SemaphoreSlim(1, 10);
-
             _notification = new Progress<string>(WriteLine);
-
             _cancellationTokenSource = new CancellationTokenSource();
-
             _cryptoManager = new CryptoManager(_cancellationTokenSource.Token);
-
-#if !DEBUG
-            ProcessManager.ProcessUnkillable();
-            MachineManager.DisableTaskManager();
-#endif
         }
 
         private static byte[] GetSaltBytes(int KeySize)
@@ -145,14 +135,14 @@ namespace cloudVault
                                 break;
 
                             default: throw new NotSupportedException();
-                        }
 
-                        foreach (string directory in GetDirectories(rootPath))
-                        {
-                            await ChangeAllFilesAsync(directory, mode);
                         }
                     }
 
+                    foreach (string directory in GetDirectories(rootPath))
+                    {
+                        await ChangeAllFilesAsync(directory, mode);
+                    }
                 }
             }
             catch (Exception ex)
@@ -192,27 +182,24 @@ namespace cloudVault
         {
             try
             {
+                if (string.IsNullOrEmpty(txtKey.Text.Trim())) return;
+
+                _cryptoManager.DefineSettings(new(GetHashedPassword(txtKey.Text), GetSaltBytes(_saltSyze), _iteractionsLimit));
+
                 switch (btnDecode.Text)
                 {
                     case "DECODE":
-
-                        if (string.IsNullOrEmpty(txtKey.Text.Trim())) return;
-
-                        _cryptoManager.DefineSettings(new(GetHashedPassword(txtKey.Text), new byte[_saltSyze], _iteractionsLimit));
-
-                        await ChangeAllFilesAsync("D:\\testDir", CypherMode.Decode);
+                        await ManageFolders(CypherMode.Decode);
 
                         btnDecode.Text = "ENCODE";
+
                         break;
 
                     case "ENCODE":
-                        if (string.IsNullOrEmpty(txtKey.Text.Trim())) return;
-
-                        _cryptoManager.DefineSettings(new(GetHashedPassword(txtKey.Text), GetSaltBytes(_saltSyze), _iteractionsLimit));
-
-                        await ChangeAllFilesAsync("D:\\testDir", CypherMode.Encode);
+                        await ManageFolders(CypherMode.Encode);
 
                         btnDecode.Text = "DECODE";
+
                         break;
 
                     default: throw new InvalidOperationException();
@@ -220,9 +207,37 @@ namespace cloudVault
             }
             catch (Exception exeption)
             {
-                MessageBox.Show(exeption.Message, "Falha de execução", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 _notification.Report(exeption.Message);
             }
+        }
+
+        private async Task ManageFolders(CypherMode mode)
+        {
+            IList<Task> tasks = [];
+
+            foreach (ListViewItem item in listFolders.Items)
+            {
+                tasks.Add(TaskChangeAllFiles(item.Text, mode));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        private Task TaskChangeAllFiles(string path, CypherMode mode)
+        {
+            return Task.Run(async () =>
+            {
+                try
+                {
+                    await _semaphore.WaitAsync();
+
+                    await ChangeAllFilesAsync(path, mode);
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
+            });
         }
 
         private void BtnExplorer_Click(object sender, EventArgs e)
