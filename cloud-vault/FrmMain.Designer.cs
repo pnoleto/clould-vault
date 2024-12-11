@@ -33,6 +33,7 @@
             txtKey = new TextBox();
             listFolders = new ListView();
             btnExplorer = new Button();
+            btnSettings = new Button();
             SuspendLayout();
             // 
             // txtLogs
@@ -84,12 +85,25 @@
             btnExplorer.UseVisualStyleBackColor = false;
             btnExplorer.Click += BtnExplorer_Click;
             // 
+            // btnSettings
+            // 
+            btnSettings.BackColor = Color.LightCoral;
+            btnSettings.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnSettings.Location = new Point(510, 19);
+            btnSettings.Name = "btnSettings";
+            btnSettings.Size = new Size(136, 32);
+            btnSettings.TabIndex = 6;
+            btnSettings.Text = "SETTINGS";
+            btnSettings.UseVisualStyleBackColor = false;
+            btnSettings.Click += BtnSettings_Click;
+            // 
             // FrmMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.Brown;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(800, 454);
+            Controls.Add(btnSettings);
             Controls.Add(btnExplorer);
             Controls.Add(listFolders);
             Controls.Add(txtKey);
@@ -100,6 +114,7 @@
             Name = "FrmMain";
             SizeGripStyle = SizeGripStyle.Hide;
             StartPosition = FormStartPosition.CenterScreen;
+            Load += FrmMain_Load;
             ResumeLayout(false);
             PerformLayout();
         }
@@ -111,5 +126,6 @@
         private TextBox txtKey;
         private ListView listFolders;
         private Button btnExplorer;
+        private Button btnSettings;
     }
 }

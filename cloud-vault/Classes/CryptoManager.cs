@@ -31,50 +31,81 @@ namespace cloudVault.Classes
             _settings = settings;
         }
 
-        private static void DefineCipherMode(Aes AES)
-        {
-            AES.KeySize = KEY_SIZE;
-            AES.BlockSize = BLOCK_SIZE;
-            AES.Padding = PaddingMode.PKCS7;
-            AES.Mode = CipherMode.CFB;
-        }
-
-        private void DeriveKeyBytes(Aes AES)
+        private Aes ConfiguredAES()
         {
             ArgumentNullException.ThrowIfNull(_settings);
 
+            Aes aes = Aes.Create();
+
+            aes.KeySize = KEY_SIZE;
+            aes.BlockSize = BLOCK_SIZE;
+            aes.Padding = PaddingMode.PKCS7;
+            aes.Mode = CipherMode.CFB;
+
             using (Rfc2898DeriveBytes key = new(_settings.PasswordHash, _settings.SaltBytes, _settings.IteractionsLimit, HashAlgorithmName.SHA256))
             {
-                AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
-                AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
+                aes.Key = key.GetBytes(aes.KeySize / BYTE_SIZE);
+                aes.IV = key.GetBytes(aes.BlockSize / BYTE_SIZE);
             }
+
+            return aes;
         }
 
         public async Task EncodeFileAsync(string actualFilePath, string newFilePath)
         {
             ArgumentNullException.ThrowIfNull(_settings);
 
-            byte[] buffer = new byte[BUFFER_STREAM_LENGTH];
-
-            using (FileStream newFileStream = new(newFilePath, FileMode.Create))
+            using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
             {
-                newFileStream.Write(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
-
-                using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
+                using (FileStream newFileStream = new(newFilePath, FileMode.Create))
                 {
-                    using (Aes AES = Aes.Create())
+                    newFileStream.Write(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
+
+                    using (Aes AES = ConfiguredAES())
                     {
-                        DefineCipherMode(AES);
-
-                        DeriveKeyBytes(AES);
-
                         using (CryptoStream cryptoStream = new(newFileStream, AES.CreateEncryptor(), CryptoStreamMode.Write))
                         {
                             int read = ZERO;
+                            byte[] buffer = new byte[BUFFER_STREAM_LENGTH];
 
                             while ((read = await actualFileStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), _cancellationToken)) > ZERO)
                             {
                                 await cryptoStream.WriteAsync(buffer.AsMemory(ZERO, read), _cancellationToken);
+                            }
+
+                            cryptoStream.Close();
+                        }
+
+                        AES.Clear();
+                    }
+
+                    newFileStream.Close();
+                }
+
+                actualFileStream.Close();
+            }
+        }
+
+        public async Task DecodeFileAsync(string actualFilePath, string newFilePath)
+        {
+            ArgumentNullException.ThrowIfNull(_settings);
+
+            using (FileStream newFileStream = new(newFilePath, FileMode.Create))
+            {
+                using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
+                {
+                    actualFileStream.Read(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
+
+                    using (Aes AES = ConfiguredAES())
+                    {
+                        using (CryptoStream cryptoStream = new(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
+                        {
+                            int read = ZERO;
+                            byte[] buffer = new byte[BUFFER_STREAM_LENGTH];
+
+                            while ((read = await cryptoStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), _cancellationToken)) > ZERO)
+                            {
+                                await newFileStream.WriteAsync(buffer.AsMemory(ZERO, read), _cancellationToken);
                             }
 
                             cryptoStream.Close();
@@ -90,44 +121,5 @@ namespace cloudVault.Classes
             }
         }
 
-        public async Task DecodeFileAsync(string actualFilePath, string newFilePath)
-        {
-            ArgumentNullException.ThrowIfNull(_settings);
-
-            byte[] buffer = new byte[BUFFER_STREAM_LENGTH];
-
-            using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
-            {
-                actualFileStream.Read(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
-
-                using (FileStream newFileStream = new(newFilePath, FileMode.Create))
-                {
-                    using (Aes AES = Aes.Create())
-                    {
-                        DefineCipherMode(AES);
-
-                        DeriveKeyBytes(AES);
-
-                        using (CryptoStream cryptoStream = new(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
-                        {
-                            int read = ZERO;
-
-                            while ((read = await cryptoStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), _cancellationToken)) > ZERO)
-                            {
-                                await newFileStream.WriteAsync(buffer.AsMemory(ZERO, read), _cancellationToken);
-                            }
-
-                            cryptoStream.Close();
-                        }
-
-                        AES.Clear();
-                    }
-
-                    newFileStream.Close();
-                }
-
-                actualFileStream.Close();
-            }
-        }
     }
 }
