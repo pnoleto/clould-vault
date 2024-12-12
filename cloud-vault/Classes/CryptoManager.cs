@@ -55,9 +55,9 @@ namespace cloudVault.Classes
         {
             ArgumentNullException.ThrowIfNull(_settings);
 
-            using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
+            using (FileStream actualFileStream = File.OpenRead(actualFilePath))
             {
-                using (FileStream newFileStream = new(newFilePath, FileMode.Create))
+                using (FileStream newFileStream = File.OpenWrite(newFilePath))
                 {
                     newFileStream.Write(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
 
@@ -90,9 +90,9 @@ namespace cloudVault.Classes
         {
             ArgumentNullException.ThrowIfNull(_settings);
 
-            using (FileStream newFileStream = new(newFilePath, FileMode.Create))
+            using (FileStream newFileStream = File.OpenWrite(newFilePath))
             {
-                using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
+                using (FileStream actualFileStream = File.OpenRead(actualFilePath))
                 {
                     actualFileStream.Read(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
 
